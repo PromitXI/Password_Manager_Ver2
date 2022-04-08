@@ -1,6 +1,8 @@
 from tkinter import *
 import random
 from tkinter import messagebox
+import pyperclip
+import json
 
 # ---------------------------- PASSWORD GENERATOR ------------------------------- #
 DIGITS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
@@ -34,8 +36,10 @@ def password_gen():
         symb = random.choice(SYMBOLS)
         password.append(symb)
     secret = ''.join(password)
+
     pass_input.delete(0, END)
     pass_input.insert(0, secret)
+    pyperclip.copy(secret)
 
 
 # ---------------------------- SAVE PASSWORD ------------------------------- #
@@ -43,18 +47,51 @@ def write_to_file():
     website = website_input.get()
     username = username_input.get()
     password = pass_input.get()
+    new_data = {
+        website: {
+            'Username': username,
+            'Password': password,
+        }
+    }
 
-    if len(website)==0 or len(password) ==0:
-        messagebox.showinfo(title="Error",message="Enter all the Values")
+    if len(website) == 0 or len(password) == 0:
+        messagebox.showinfo(title="Error", message="Enter all the Values")
 
     else:
-        is_ok = messagebox.askokcancel(title="Password Save?", message="Save login details?")
-        if is_ok:
-            with open('Passwords.txt', 'a') as file:
-                file.write(f"Website: {website}|Username: {username}|Password: {password}\n")
-                website_input.delete(0, END)
-                username_input.delete(0, END)
-                pass_input.delete(0, END)
+        try:
+            with open('data.json', "r") as data_file:
+                data = json.load(data_file)
+        except FileNotFoundError:
+            with open('data.json', "w") as data_file:
+                json.dump(new_data, data_file, indent=4)
+        else:
+            data.update(new_data)
+            with open('data.json', 'w') as data_file:
+                json.dump(data, data_file, indent=4)
+        finally:
+            # file.write(f"Website: {website}|Username: {username}|Password: {password}\n")
+            website_input.delete(0, END)
+
+            pass_input.delete(0, END)
+
+
+# ----------------------SSEARCH ENGINE-----------------------------------#
+def find_password():
+    query = website_input.get()
+    try:
+        with open('data.json', 'r') as file:
+            data_dict = json.load(file)
+    except FileNotFoundError:
+        messagebox.showinfo(title="Error", message="No Password Stored")
+    else:
+        for key in data_dict:
+            if key == query:
+                username = data_dict[key]["Username"]
+                password = data_dict[key]["Password"]
+            else:
+                messagebox.showinfo(title="Error", message="No Password Stored")
+
+        messagebox.showinfo(title="Login Details", message=f"Username:{username}\n Password:{password}")
 
 
 # ---------------------------- UI SETUP ------------------------------- #
@@ -70,16 +107,16 @@ canvas.grid(row=0, column=1)
 website_label = Label(text="Website :")
 website_label.grid(column=0, row=1)
 
-website_input = Entry(width=35)
+website_input = Entry(width=30)
 website_input.focus()
 
-website_input.grid(column=1, row=1, columnspan=2)
+website_input.grid(column=1, row=1)
 
-username_label = Label(text="Website/Email :")
+username_label = Label(text="Website/Email:")
 
 username_label.grid(column=0, row=2)
 
-username_input = Entry(width=35)
+username_input = Entry(width=30)
 username_input.insert(0, string="promit.xi@gmail.com")
 username_input.grid(column=1, row=2, columnspan=2)
 
@@ -94,6 +131,9 @@ pass_gen.grid(column=2, row=3)
 
 add_pass = Button(text="Store", width=36, command=write_to_file)
 add_pass.grid(column=1, row=4, columnspan=2)
+
+search_button = Button(text="Search", command=find_password)
+search_button.grid(column=2, row=1)
 
 label_palavan = Label(text="PalaVan Widgets", fg="#4D96FF", font=("Gabriola", 12, 'bold'), highlightthickness=0)
 label_palavan.grid(column=1, row=5)
